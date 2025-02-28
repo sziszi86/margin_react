@@ -1,5 +1,5 @@
 import PostCard from "@/components/posts/post-card";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -42,11 +42,16 @@ export default function PostList({
 
   const fetchPosts = async (): Promise<Post[]> => {
     const response = await axios.get("/wp-json/wp/v2/posts?_embed", {
-      withCredentials: true,
+      withCredentials: true, // Hitelesítési sütik küldése
       headers: {
         "Content-Type": "application/json",
       },
     });
+    // Teljes posztok számának lekérése az X-WP-Total fejlécből
+    const total = parseInt(response.headers["x-wp-total"], 10);
+    if (!isNaN(total)) {
+      setTotalItems(total);
+    }
     return response.data;
   };
 
@@ -63,27 +68,24 @@ export default function PostList({
     return postExpirationDate > now;
   };
 
-  const getTotalItems = useCallback(async () => {
-    try {
-      const total = 12;
-      setTotalItems(total);
-    } catch (error) {
-      console.error("Error fetching total items:", error);
-    }
-  }, []);
-
+  // A getTotalItems már nem szükséges, mert az API válaszból kapjuk a total-t
   useEffect(() => {
-    getTotalItems();
-  }, [getTotalItems]);
+    if (data && totalItems === null) {
+      setTotalItems(12); // Alapértelmezett érték, ha az X-WP-Total nem áll rendelkezésre
+    }
+  }, [data, totalItems]);
 
-  if (error) return <div>An error has occurred: {error.message}</div>;
+  if (error)
+    return (
+      <div className="text-red-600">An error has occurred: {error.message}</div>
+    );
 
   return (
-    <>
+    <div className="container mx-auto px-4">
       <div className={cn("grid grid-cols-1 gap-10 lg:grid-cols-3", grid)}>
         {isLoading &&
           Array.from({ length: limit }).map((_, i) => (
-            <Skeleton key={i} className="h-[33rem] w-full" />
+            <Skeleton key={i} className="h-[33rem] w-full rounded-lg" />
           ))}
 
         {data
@@ -131,9 +133,14 @@ export default function PostList({
       totalItems &&
       data.length < totalItems ? (
         <div className="mt-10 text-center">
-          <Button size="lg">Továbbiak betöltése</Button>
+          <Button
+            size="lg"
+            className="bg-blue-600 text-white hover:bg-blue-700"
+          >
+            Továbbiak betöltése
+          </Button>
         </div>
       ) : null}
-    </>
+    </div>
   );
 }

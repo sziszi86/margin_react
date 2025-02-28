@@ -36,16 +36,15 @@ const SinglePost = ({ postId }: SinglePostProps) => {
   } = useQuery<Post>({
     queryKey: ["post", postId],
     queryFn: async () => {
-      const response = await axios.get(
-        `/wp-json/wp/v2/posts/${postId}`, // Proxyzott URL a vite.config.ts alapján
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
+      const response = await axios.get(`/wp-json/wp/v2/posts/${postId}`, {
+        withCredentials: true, // Hitelesítési sütik küldése
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+      });
       return response.data;
     },
+    enabled: !!postId, // Csak akkor fut, ha postId nem üres
   });
 
   if (isPending) return <p>Loading...</p>;
@@ -55,8 +54,11 @@ const SinglePost = ({ postId }: SinglePostProps) => {
   if (!post) return <p>Post not found</p>;
 
   return (
-    <div>
-      <h1 dangerouslySetInnerHTML={{ __html: post.title.rendered }} />
+    <div className="prose max-w-none p-4">
+      <h1
+        className="text-3xl font-bold"
+        dangerouslySetInnerHTML={{ __html: post.title.rendered }}
+      />
       <div dangerouslySetInnerHTML={{ __html: post.content.rendered }} />
     </div>
   );
@@ -64,8 +66,6 @@ const SinglePost = ({ postId }: SinglePostProps) => {
 
 const SinglePostPage = () => {
   const { postId } = useParams<{ postId: string }>();
-
-  // Biztosítjuk, hogy postId mindig string legyen
   const validPostId = postId ?? ""; // Nullish coalescing: undefined/null esetén üres string
 
   return <SinglePost postId={validPostId} />;
