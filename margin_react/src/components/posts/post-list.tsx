@@ -42,11 +42,14 @@ export default function PostList({
 
   const fetchPosts = async (): Promise<Post[]> => {
     try {
-      const response = await axios.get("/api/proxy/wp/v2/posts?_embed", {
-        headers: {
-          "Content-Type": "application/json",
+      const response = await axios.get(
+        "https://palace-poker.hu/ujadmin/wp-json/wp/v2/posts?_embed",
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
         },
-      });
+      );
       const total = parseInt(response.headers["x-wp-total"], 10);
       if (!isNaN(total)) {
         setTotalItems(total);
