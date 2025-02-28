@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import axios, { AxiosError } from "axios"; // Importáljuk az AxiosError típust
+import axios, { AxiosError } from "axios";
 import { useQuery } from "@tanstack/react-query";
 
 interface Post {
@@ -42,8 +42,7 @@ export default function PostList({
 
   const fetchPosts = async (): Promise<Post[]> => {
     try {
-      const response = await axios.get("/wp-json/wp/v2/posts?_embed", {
-        withCredentials: true, // Hitelesítési sütik küldése
+      const response = await axios.get("/api/proxy/wp/v2/posts?_embed", {
         headers: {
           "Content-Type": "application/json",
         },
@@ -62,7 +61,7 @@ export default function PostList({
   const { isLoading, error, data } = useQuery<Post[]>({
     queryKey: ["posts"],
     queryFn: fetchPosts,
-    retry: 1, // Kevesebb újrapróbálkozás
+    retry: 1,
   });
 
   const isPostValid = (post: Post): boolean => {
@@ -80,17 +79,13 @@ export default function PostList({
   }, [data, totalItems]);
 
   if (error) {
-    // Az error típusát AxiosError-ként kezeljük
     const axiosError = error as AxiosError<{ message?: string }>;
     return (
       <div className="text-center text-red-600">
         An error has occurred: {axiosError.message}
         <br />
         {axiosError.response?.status === 403 && (
-          <p>
-            Access denied. Please ensure you are logged in or check server
-            permissions.
-          </p>
+          <p>Access denied. Please ensure the server allows this request.</p>
         )}
       </div>
     );
