@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import axios from "axios";
+import axios, { AxiosError } from "axios"; // Importáljuk az AxiosError típust
 import { useQuery } from "@tanstack/react-query";
 
 interface Post {
@@ -41,23 +41,28 @@ export default function PostList({
   const [totalItems, setTotalItems] = useState<number | null>(null);
 
   const fetchPosts = async (): Promise<Post[]> => {
-    const response = await axios.get("/wp-json/wp/v2/posts?_embed", {
-      withCredentials: true, // Hitelesítési sütik küldése
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    // Teljes posztok számának lekérése az X-WP-Total fejlécből
-    const total = parseInt(response.headers["x-wp-total"], 10);
-    if (!isNaN(total)) {
-      setTotalItems(total);
+    try {
+      const response = await axios.get("/wp-json/wp/v2/posts?_embed", {
+        withCredentials: true, // Hitelesítési sütik küldése
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const total = parseInt(response.headers["x-wp-total"], 10);
+      if (!isNaN(total)) {
+        setTotalItems(total);
+      }
+      return response.data;
+    } catch (err) {
+      console.error("Fetch posts error:", err);
+      throw err;
     }
-    return response.data;
   };
 
   const { isLoading, error, data } = useQuery<Post[]>({
     queryKey: ["posts"],
     queryFn: fetchPosts,
+    retry: 1, // Kevesebb újrapróbálkozás
   });
 
   const isPostValid = (post: Post): boolean => {
@@ -68,17 +73,28 @@ export default function PostList({
     return postExpirationDate > now;
   };
 
-  // A getTotalItems már nem szükséges, mert az API válaszból kapjuk a total-t
   useEffect(() => {
     if (data && totalItems === null) {
-      setTotalItems(12); // Alapértelmezett érték, ha az X-WP-Total nem áll rendelkezésre
+      setTotalItems(12); // Alapértelmezett fallback
     }
   }, [data, totalItems]);
 
-  if (error)
+  if (error) {
+    // Az error típusát AxiosError-ként kezeljük
+    const axiosError = error as AxiosError<{ message?: string }>;
     return (
-      <div className="text-red-600">An error has occurred: {error.message}</div>
+      <div className="text-center text-red-600">
+        An error has occurred: {axiosError.message}
+        <br />
+        {axiosError.response?.status === 403 && (
+          <p>
+            Access denied. Please ensure you are logged in or check server
+            permissions.
+          </p>
+        )}
+      </div>
     );
+  }
 
   return (
     <div className="container mx-auto px-4">
