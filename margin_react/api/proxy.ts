@@ -4,7 +4,7 @@ import axios, { AxiosError } from "axios";
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     console.log("Proxy request received:", req.url);
-    const apiUrl = `https://palace-poker.hu/ujadmin/wp-json/wp/v2/posts${
+    const apiUrl = `https://palace-poker.hu/ujadmin/wp-json${
       req.url?.replace("/api/proxy", "") || ""
     }`;
     const response = await axios.get(apiUrl, {
